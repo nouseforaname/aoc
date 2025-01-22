@@ -51,10 +51,20 @@ fn sum_of_tuple_multiplications(input: &Vec<(u32, u32)>) -> u64 {
     }
     return sum;
 }
-fn parse_string_for_mul_instructions(input: &String) -> Vec<(u32, u32)> {
+fn parse_string_for_mul_instructions(input: &String, filter: Option<Regex>) -> Vec<(u32, u32)> {
     let mut ret = Vec::new();
+    let mut filtered_input = input.clone();
+    match filter {
+        Some(filter) => {
+            for (_, [content, _endtag]) in filter.captures_iter(input).map(|cap| cap.extract()) {
+                filtered_input = filtered_input.replace(content, "")
+            }
+        }
+        None => {}
+    }
+
     let re = Regex::new(r"mul\(([0-9]{1,3}),([0-9]{1,3})\)").unwrap();
-    for (_, [left, right]) in re.captures_iter(input).map(|cap| cap.extract()) {
+    for (_, [left, right]) in re.captures_iter(&filtered_input).map(|cap| cap.extract()) {
         let first: u32 = left.parse().unwrap();
         let second: u32 = right.parse().unwrap();
         ret.push((first, second));
@@ -304,15 +314,16 @@ mod tests {
         assert_eq!(sum_of_tuple_multiplications(&input), 161);
 
         if let Ok(lines) = read_lines("../data/input_3.txt") {
-            println!("XX");
             for line in lines.map_while(Result::ok) {
-                assert_ne!(line, "");
-                let recovered_numbers = parse_string_for_mul_instructions(&line);
+                let recovered_numbers = parse_string_for_mul_instructions(&line, None);
                 assert_eq!(recovered_numbers.len(), 721);
                 assert_eq!(sum_of_tuple_multiplications(&recovered_numbers), 189600467);
+
+                let filter = Some(Regex::new(r"don't\(\)(.*?)(do\(\)|$)").unwrap());
+                let recovered_numbers = parse_string_for_mul_instructions(&line, filter);
+                assert_eq!(recovered_numbers.len(), 407);
+                assert_eq!(sum_of_tuple_multiplications(&recovered_numbers), 107069718);
             }
-        } else {
-            println!("OO");
         }
     }
     #[test]
@@ -321,8 +332,16 @@ mod tests {
             String::from("xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))");
 
         assert_eq!(
-            parse_string_for_mul_instructions(&input),
+            parse_string_for_mul_instructions(&input, None),
             [(2, 4), (5, 5), (11, 8), (8, 5)].to_vec()
-        )
+        );
+        let input = String::from(
+            "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))don't()mul(88,66)",
+        );
+        let filter = Some(Regex::new(r"don't\(\)(.*?)($|do\(\))").unwrap());
+        assert_eq!(
+            parse_string_for_mul_instructions(&input, filter),
+            [(2, 4), (8, 5)].to_vec()
+        );
     }
 }
