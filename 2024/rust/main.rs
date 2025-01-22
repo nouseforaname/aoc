@@ -44,6 +44,11 @@ enum Direction {
     UP,
     DOWN,
 }
+
+fn parse_string_for_mul_instructions(input: &String) -> Vec<(u32, u32)> {
+    let ret = Vec::new();
+    return ret;
+}
 // 2nd return element contains either the offending element or the length of the vec if the series is safe
 fn is_series_safe(row: &Vec<u32>, direction: &Direction, dampener: bool) -> (bool, usize) {
     let length = row.len() - 1;
@@ -280,5 +285,15 @@ mod tests {
         let list = read_ordered_list_data_to_vec("../data/input_2.tsv").to_vec();
         let reactor_levels = check_reactor_levels(&list, true).to_vec();
         assert_eq!(count_safe_reactor_reports(&reactor_levels), 710);
+    }
+    #[test]
+    fn test_parse_mul_instructions() {
+        let input =
+            String::from("xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))");
+
+        assert_eq!(
+            parse_string_for_mul_instructions(&input),
+            [(2, 4), (5, 5), (11, 8), (8, 5)].to_vec()
+        )
     }
 }
