@@ -39,34 +39,39 @@ fn similarity_score_of_all_elements(list: &Vec<Vec<u32>>) -> u64 {
     }
     return sim_score.into();
 }
-
-fn check_reactor_levels(rows: &Vec<Vec<u32>>) -> Vec<bool> {
-    let mut ret: Vec<bool> = Vec::new();
-    'outer: for row in rows.to_vec() {
-        let data = row.to_vec();
-        let mut only_rising = true;
-        let mut only_falling = true;
-        let length = row.len() - 1;
-        for current in 0..length {
-            let next = current + 1;
-            let distance = distance(*data.get(current).unwrap(), *data.get(next).unwrap());
-            if distance < 1 || distance > 3 {
-                ret.push(false);
-                continue 'outer;
+enum Direction {
+    UP,
+    DOWN,
+}
+fn is_series_safe(row: &Vec<u32>, direction: &Direction) -> (bool, usize) {
+    let length = row.len() - 1;
+    let distance_range = 1..4;
+    for current in 0..length {
+        let next = current + 1;
+        match direction {
+            Direction::UP => {
+                if row[current] > row[next] {
+                    return (false, current);
+                }
             }
-
-            if only_rising && row[current] > row[current + 1 as usize] {
-                only_rising = false;
-            }
-            if only_falling && row[current] < row[current + 1 as usize] {
-                only_falling = false;
-            }
-            if !only_rising && !only_falling {
-                ret.push(false);
-                continue 'outer;
+            Direction::DOWN => {
+                if row[current] < row[next] {
+                    return (false, current);
+                }
             }
         }
-        ret.push(true);
+        if !distance_range.contains(&distance(row[current], row[next])) {
+            return (false, current);
+        }
+    }
+    return (true, row.len());
+}
+fn check_reactor_levels(rows: &Vec<Vec<u32>>) -> Vec<bool> {
+    let mut ret: Vec<bool> = Vec::new();
+    for row in rows.to_vec() {
+        let (safe_up, _offender_up) = is_series_safe(&row.to_vec(), &Direction::UP);
+        let (safe_down, _offender_down) = is_series_safe(&row.to_vec(), &Direction::DOWN);
+        ret.push(safe_up || safe_down);
     }
     return ret;
 }
@@ -167,6 +172,8 @@ mod tests {
         assert!(count_safe_reactor_reports(&reactor_levels) == 2);
     }
 
+    #[test]
+    fn test_is_series_safe() {}
     //let reactor_levels = check_reactor_levels(&list).to_vec();
     //assert!(count_safe_reactor_reports(&reactor_levels) == 680)
 }
