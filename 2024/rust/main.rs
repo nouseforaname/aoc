@@ -1,7 +1,7 @@
+use regex::Regex;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
-
 fn main() {}
 
 fn distance(element_a: u32, element_b: u32) -> u64 {
@@ -44,9 +44,21 @@ enum Direction {
     UP,
     DOWN,
 }
-
+fn sum_of_tuple_multiplications(input: &Vec<(u32, u32)>) -> u64 {
+    let mut sum: u64 = 0;
+    for (left, right) in input {
+        sum += *left as u64 * *right as u64;
+    }
+    return sum;
+}
 fn parse_string_for_mul_instructions(input: &String) -> Vec<(u32, u32)> {
-    let ret = Vec::new();
+    let mut ret = Vec::new();
+    let re = Regex::new(r"mul\(([0-9]{1,3}),([0-9]{1,3})\)").unwrap();
+    for (_, [left, right]) in re.captures_iter(input).map(|cap| cap.extract()) {
+        let first: u32 = left.parse().unwrap();
+        let second: u32 = right.parse().unwrap();
+        ret.push((first, second));
+    }
     return ret;
 }
 // 2nd return element contains either the offending element or the length of the vec if the series is safe
@@ -285,6 +297,23 @@ mod tests {
         let list = read_ordered_list_data_to_vec("../data/input_2.tsv").to_vec();
         let reactor_levels = check_reactor_levels(&list, true).to_vec();
         assert_eq!(count_safe_reactor_reports(&reactor_levels), 710);
+    }
+    #[test]
+    fn vector_element_multiplier() {
+        let input = [(2, 4), (5, 5), (11, 8), (8, 5)].to_vec();
+        assert_eq!(sum_of_tuple_multiplications(&input), 161);
+
+        if let Ok(lines) = read_lines("../data/input_3.txt") {
+            println!("XX");
+            for line in lines.map_while(Result::ok) {
+                assert_ne!(line, "");
+                let recovered_numbers = parse_string_for_mul_instructions(&line);
+                assert_eq!(recovered_numbers.len(), 721);
+                assert_eq!(sum_of_tuple_multiplications(&recovered_numbers), 189600467);
+            }
+        } else {
+            println!("OO");
+        }
     }
     #[test]
     fn test_parse_mul_instructions() {
