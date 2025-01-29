@@ -4,6 +4,210 @@ use std::io::{self, BufRead};
 use std::path::Path;
 fn main() {}
 
+fn scan(input: &Vec<Vec<char>>, needle: String, scanner: fn(&Vec<char>, &Vec<char>) -> u16) -> u16 {
+    let mut hits = 0;
+    let num_rows = input.len() - 1;
+    let needle_reverse: Vec<char> = needle.chars().rev().collect();
+    let needle: Vec<char> = needle.chars().collect();
+    let mut num_columns: i32 = 0;
+    for (line_index, line) in input.iter().enumerate() {
+        let line_index = line_index as i32;
+
+        if line_index == 0 {
+            num_columns = (line.len() - 1) as i32;
+            for column_index in 0..=num_columns {
+                // scan vertically on first pass only
+                let column = extract_string(input, (column_index, 0), (0, 1), num_columns, -1);
+
+                hits += find_line_hits(&column, &needle);
+                hits += find_line_hits(&column, &needle_reverse);
+            }
+        }
+        hits += find_line_hits(&line, &needle);
+        hits += find_line_hits(&line, &needle_reverse);
+    }
+
+    let y_range = (needle.len() - 1) as i32..=num_rows as i32;
+    let direction = (1, -1);
+    let x: i32 = 0;
+    for y in y_range {
+        let start = (x, y);
+        let line = extract_string(&input, start, direction, needle.len() as i32, -1);
+        hits += find_line_hits(&line, &needle);
+        hits += find_line_hits(&line, &needle_reverse);
+    }
+    let y = num_rows as i32;
+    let x_range = 1..=(num_columns - (needle.len() - 1) as i32);
+    for x in x_range {
+        let start = (x, y);
+
+        let line = extract_string(&input, start, direction, needle.len() as i32, -1);
+        hits += find_line_hits(&line, &needle);
+        hits += find_line_hits(&line, &needle_reverse);
+    }
+    let y = 0;
+    let x_range = (0..=(num_columns - (needle.len() - 1) as i32)).rev();
+    let direction = (1, 1);
+    for x in x_range {
+        let start = (x, y);
+        let line = extract_string(&input, start, direction, needle.len() as i32, -1);
+
+        hits += find_line_hits(&line, &needle);
+        hits += find_line_hits(&line, &needle_reverse);
+    }
+    let y_range = 1..=(num_rows - (needle.len() - 1)) as i32;
+    let x: i32 = 0;
+    for y in y_range {
+        let start = (x, y);
+        let line = extract_string(&input, start, direction, needle.len() as i32, -1);
+        hits += find_line_hits(&line, &needle);
+        hits += find_line_hits(&line, &needle_reverse);
+    }
+
+    // https://github.com/rust-lang/rust/issues/70925 descending ranges dont work.
+    return hits as u16;
+}
+fn find_cross_hits(haystack: &Vec<Vec<char>>, needle: &Vec<char>) -> u16 {
+    let center_index = needle.len() / 2;
+    let mut hits = 0;
+    let center_char = &needle[center_index];
+    let mut needle_reverse: Vec<char> = needle.clone();
+    needle_reverse.reverse();
+
+    let line_offset = center_index;
+
+    // first and last line cannot contain the center character.
+    for y_start in line_offset..haystack.len() - line_offset {
+        let line = haystack.get(y_start).unwrap();
+        let possible_hits_in_line = position_of_char(line, center_char);
+
+        for x_start in possible_hits_in_line {
+            if x_start == 0 {
+                continue;
+            }
+            let possible_match = extract_string(
+                haystack,
+                ((x_start - 1) as i32, (y_start - 1) as i32),
+                (1, 1),
+                3,
+                3,
+            );
+            let (x, y) = (x_start - 1, y_start - 1);
+            if &possible_match == needle || possible_match == needle_reverse {
+                let possible_match_2 = extract_string(
+                    haystack,
+                    ((x_start - 1) as i32, (y_start + 1) as i32),
+                    (1, -1),
+                    3,
+                    3,
+                );
+                if &possible_match_2 == needle || possible_match_2 == needle_reverse {
+                    hits += 1;
+                }
+            }
+        }
+    }
+
+    return hits;
+}
+fn find_line_hits(haystack: &Vec<char>, needle: &Vec<char>) -> u16 {
+    if haystack.len() < needle.len() {
+        return 0;
+    }
+    if haystack.len() == needle.len() {
+        if haystack == needle {
+            return 1;
+        }
+        return 0;
+    }
+    let first_char = needle.first().unwrap();
+    let needle_max_index = needle.len() - 1;
+    let haystack_max_index = haystack.len() - 1;
+    let mut hits = 0;
+
+    let positions = position_of_char(haystack, first_char);
+    for position in positions {
+        if position + needle_max_index > haystack_max_index {
+            continue;
+        }
+        let partial = &haystack[position..=position + needle_max_index];
+
+        if partial == needle {
+            hits += 1;
+        }
+    }
+    return hits;
+}
+fn position_of_char(haystack: &Vec<char>, c: &char) -> Vec<usize> {
+    let mut all_elements = haystack.iter();
+    let mut positions = Vec::new();
+    let mut offset = 0;
+    loop {
+        match all_elements.position(|element| element == c) {
+            Some(pos) => {
+                offset += pos;
+                positions.push(offset);
+                offset += 1;
+            }
+            None => break,
+        }
+    }
+    return positions;
+}
+fn extract_string(
+    input: &Vec<Vec<char>>,
+    start: (i32, i32),
+    direction: (i32, i32),
+    min_length: i32,
+    max_length: i32,
+) -> Vec<char> {
+    let (mut x, mut y) = start;
+    let mut ret: Vec<char> = Vec::new();
+    let mut extracted_char_count = 0;
+    let num_rows = input.len();
+    match direction {
+        // line
+        (1, 0) => {
+            ret = (*input.get(y as usize).unwrap().clone()).to_vec();
+            return ret;
+        }
+        // diagonal // column
+        (delta_x, delta_y) => loop {
+            match input.get(y as usize) {
+                Some(row) => {
+                    let row_length = row.len();
+                    match row.get(x as usize) {
+                        Some(c) => {
+                            ret.push(*c);
+                            extracted_char_count += 1;
+                            y += delta_y;
+                            x += delta_x;
+                            if extracted_char_count == max_length {
+                                break;
+                            }
+                            if y < 0 || x < 0 {
+                                break;
+                            }
+                            if y >= num_rows as i32 || x >= row_length as i32 {
+                                break;
+                            }
+                        }
+                        None => {
+                            break;
+                        }
+                    }
+                }
+                None => {
+                    break;
+                }
+            }
+        },
+    }
+    if extracted_char_count < min_length {
+        return [].to_vec();
+    }
+    return ret;
+}
 fn distance(element_a: u32, element_b: u32) -> u64 {
     if element_a > element_b {
         return (element_a - element_b) as u64;
@@ -227,8 +431,32 @@ mod tests {
         assert!(list.len() == 1000);
         let list = read_ordered_list_data_to_vec("../data/input_2a.tsv").to_vec();
         assert!(list.len() == 6);
-        //let list = read_ordered_list_data_to_vec("../data/input_2b.tsv").to_vec();
-        //assert!(list.len() == 10);
+    }
+    #[test]
+    fn test_find_cross() {
+        let mut input: Vec<Vec<char>> = Vec::new();
+        if let Ok(lines) = read_lines("../data/input_4c.txt") {
+            for line in lines.map_while(Result::ok) {
+                let chars: Vec<char> = line.chars().map(|c| c).collect();
+                input.push(chars);
+            }
+        }
+        assert_eq!(
+            9,
+            find_cross_hits(&input, &"MAS".chars().collect::<Vec<char>>())
+        );
+        let mut input: Vec<Vec<char>> = Vec::new();
+        if let Ok(lines) = read_lines("../data/input_4b.txt") {
+            for line in lines.map_while(Result::ok) {
+                let chars: Vec<char> = line.chars().map(|c| c).collect();
+                input.push(chars);
+            }
+        }
+        //too low
+        assert_eq!(
+            2029,
+            find_cross_hits(&input, &"MAS".chars().collect::<Vec<char>>())
+        );
     }
     #[test]
     fn reactor_level_returns() {
@@ -343,5 +571,69 @@ mod tests {
             parse_string_for_mul_instructions(&input, filter),
             [(2, 4), (8, 5)].to_vec()
         );
+    }
+    #[test]
+    fn test_scan_test_with_find_line_hits() {
+        let mut input: Vec<Vec<char>> = Vec::new();
+        if let Ok(lines) = read_lines("../data/input_4a.txt") {
+            for line in lines.map_while(Result::ok) {
+                let chars: Vec<char> = line.chars().map(|c| c).collect();
+                input.push(chars);
+            }
+        }
+        let hits = scan(&input, "XMAS".to_string());
+        assert_eq!(hits, 18);
+    }
+    #[test]
+    fn test_word_search() {
+        let haystack = "SAMXXCXMAS".chars().collect();
+        let needle = "XMAS".chars().collect();
+
+        assert_eq!(find_line_hits(&haystack, &needle), 1);
+
+        let haystack = "XMAS".chars().collect();
+        assert_eq!(find_line_hits(&haystack, &needle), 1);
+
+        let haystack = "XMASXX".chars().collect();
+        assert_eq!(find_line_hits(&haystack, &needle), 1);
+
+        let haystack = ['M', 'S', 'X', 'M', 'A', 'X', 'S', 'A', 'M', 'X'].to_vec();
+        let needle = ['S', 'A', 'M', 'X'].to_vec();
+
+        assert_eq!(find_line_hits(&haystack, &needle), 1);
+
+        let mut input: Vec<Vec<char>> = Vec::new();
+        if let Ok(lines) = read_lines("../data/input_4a.txt") {
+            for line in lines.map_while(Result::ok) {
+                let chars: Vec<char> = line.chars().map(|c| c).collect();
+                input.push(chars);
+            }
+        }
+        assert_eq!(
+            extract_string(&input, (0, 0), (1, 1), 4, -1),
+            "MSXMAXSAMX".chars().collect::<Vec<char>>(),
+        );
+        assert_eq!(
+            extract_string(&input, (1, 0), (1, 1), 4, -1),
+            "MASAMXXAM".chars().collect::<Vec<char>>()
+        );
+        assert_eq!(
+            extract_string(&input, (9, 9), (1, -1), 4, -1),
+            "".chars().collect::<Vec<char>>()
+        );
+        assert_eq!(
+            extract_string(&input, (0, 9), (1, -1), 4, -1),
+            "MAXMMMMASM".chars().collect::<Vec<char>>()
+        );
+
+        let mut input: Vec<Vec<char>> = Vec::new();
+        if let Ok(lines) = read_lines("../data/input_4b.txt") {
+            for line in lines.map_while(Result::ok) {
+                let chars: Vec<char> = line.chars().map(|c| c).collect();
+                input.push(chars);
+            }
+        }
+        let hits = scan(&input, "XMAS".to_string());
+        assert_eq!(hits, 2567);
     }
 }
