@@ -1,10 +1,130 @@
 use regex::Regex;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 fn main() {}
 
-fn scan(input: &Vec<Vec<char>>, needle: String, scanner: fn(&Vec<char>, &Vec<char>) -> u16) -> u16 {
+fn find_and_fix_broken_book_updates(
+    rules: &HashMap<i32, Vec<u16>>,
+    input: &Vec<Vec<u16>>,
+) -> Vec<Vec<u16>> {
+    let mut ret: Vec<Vec<u16>> = Vec::new();
+
+    for update in input.iter() {
+        let (clean, _, _) = check_update_ordering(&rules, update);
+        if !clean {
+            ret.push(fix_bad_book_update(&rules, &update));
+        }
+    }
+
+    return ret;
+}
+fn fix_bad_book_update(rules: &HashMap<i32, Vec<u16>>, input: &Vec<u16>) -> Vec<u16> {
+    let mut clean = false;
+    let mut ret = input.clone();
+    let mut offender: Option<i32>;
+    let mut rule: Option<i32>;
+    while !clean {
+        (clean, offender, rule) = check_update_ordering(rules, &ret);
+        println!("{ret:?}");
+        match (offender, rule) {
+            (Some(offender), Some(rule)) => {
+                let left = ret.iter().position(|element| *element as i32 == offender);
+
+                let right = ret.iter().position(|element| *element as i32 == rule);
+                match (left, right) {
+                    (Some(left), Some(right)) => ret.swap(left, right),
+                    _ => continue,
+                }
+            }
+            _ => continue,
+        }
+    }
+    return ret;
+}
+fn calculate_book_middle_page_sum(rules: &HashMap<i32, Vec<u16>>, input: &Vec<Vec<u16>>) -> u32 {
+    let mut sum: u32 = 0;
+    for update in input.iter() {
+        let (clean, _, _) = check_update_ordering(&rules, update);
+        if clean {
+            sum += *update.get(update.len() / 2).unwrap() as u32;
+        }
+    }
+    return sum;
+}
+fn check_update_ordering(
+    rules: &HashMap<i32, Vec<u16>>,
+    input: &Vec<u16>,
+) -> (bool, Option<i32>, Option<i32>) {
+    for (index, element) in input.iter().enumerate() {
+        match rules.get(&(*element as i32)) {
+            Some(rule) => {
+                for check_element in rule {
+                    match input.iter().position(|element| element == check_element) {
+                        Some(check_element_index) => {
+                            if check_element_index < index {
+                                println!("{element} should go before {check_element}");
+                                return (false, Some(*element as i32), Some(*check_element as i32));
+                            }
+                        }
+                        None => {}
+                    }
+                }
+            }
+            None => {}
+        }
+    }
+    return (true, None, None);
+}
+
+fn read_book_printing_data(path: &str) -> (HashMap<i32, Vec<u16>>, Vec<Vec<u16>>) {
+    let mut rules = HashMap::<i32, Vec<u16>>::new();
+    let mut updates = Vec::new();
+
+    if let Ok(lines) = read_lines(path) {
+        for line in lines.map_while(Result::ok) {
+            if line == "".to_string() {
+                continue;
+            }
+            if !line.contains('|') {
+                let elements: Vec<u16> = line
+                    .split(',')
+                    .map(|element| element.parse::<u16>().unwrap())
+                    .collect();
+                if elements.len() > 0 {
+                    updates.push(elements);
+                }
+                continue;
+            }
+            let elements: Vec<i32> = line
+                .split('|')
+                .map(|element| element.parse::<i32>().unwrap())
+                .collect();
+
+            if elements.len() == 2 {
+                let key = elements.first().unwrap();
+                let value = elements.last().unwrap();
+
+                match rules.get_mut(key) {
+                    Some(val) => {
+                        val.push(*value as u16);
+                    }
+                    None => {
+                        rules.insert(*key, [*value as u16].to_vec());
+                    }
+                }
+                continue;
+            }
+        }
+    }
+
+    println!("rules {rules:?}");
+    println!("updates {updates:?}");
+
+    return (rules, updates);
+}
+fn scan(input: &Vec<Vec<char>>, needle: String) -> u16 {
     let mut hits = 0;
     let num_rows = input.len() - 1;
     let needle_reverse: Vec<char> = needle.chars().rev().collect();
@@ -411,6 +531,75 @@ fn read_column_data_to_vec(filename: &str) -> Vec<Vec<u32>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_fix_bad_book_update() {
+        let (rules, _updates) = read_book_printing_data("../data/input5a.txt");
+        assert_eq!(
+            fix_bad_book_update(&rules, &[75, 97, 47, 61, 53].to_vec()),
+            [97, 75, 47, 61, 53]
+        );
+        assert_eq!(
+            fix_bad_book_update(&rules, &[61, 13, 29].to_vec()),
+            [61, 29, 13]
+        );
+        assert_eq!(
+            fix_bad_book_update(&rules, &[97, 13, 75, 29, 47].to_vec()),
+            [97, 75, 47, 29, 13]
+        );
+    }
+    #[test]
+    fn test_find_and_fix_broken_book_updates() {
+        let (rules, updates) = read_book_printing_data("../data/input5a.txt");
+        let fixed_updates = find_and_fix_broken_book_updates(&rules, &updates);
+        assert_eq!(123, calculate_book_middle_page_sum(&rules, &fixed_updates));
+
+        let (rules, updates) = read_book_printing_data("../data/input_5b.txt");
+        assert_eq!(calculate_book_middle_page_sum(&rules, &updates), 5091);
+
+        let fixed_updates = find_and_fix_broken_book_updates(&rules, &updates);
+        assert_eq!(4681, calculate_book_middle_page_sum(&rules, &fixed_updates));
+    }
+    #[test]
+    fn test_calculate_middle_page_sum() {
+        let (rules, updates) = read_book_printing_data("../data/input5a.txt");
+        assert_eq!(calculate_book_middle_page_sum(&rules, &updates), 143);
+    }
+    #[test]
+    fn test_check_update_ordering() {
+        let (rules, updates) = read_book_printing_data("../data/input5a.txt");
+
+        assert_eq!(
+            check_update_ordering(&rules, updates.first().unwrap()),
+            (true, None, None)
+        );
+        assert_eq!(
+            check_update_ordering(&rules, updates.get(1).unwrap()),
+            (true, None, None)
+        );
+        assert_eq!(
+            check_update_ordering(&rules, updates.get(2).unwrap()),
+            (true, None, None)
+        );
+        assert_eq!(
+            check_update_ordering(&rules, updates.get(3).unwrap()),
+            (false, Some(97), Some(75))
+        );
+        assert_eq!(
+            check_update_ordering(&rules, updates.get(4).unwrap()),
+            (false, Some(29), Some(13))
+        );
+    }
+    #[test]
+    fn test_read_book_printing_data() {
+        let (rules, updates) = read_book_printing_data("../data/input5a.txt");
+
+        assert_eq!(rules.len(), 6);
+        assert_eq!(updates.len(), 6);
+
+        assert_eq!(rules.get(&75).unwrap(), &[29, 53, 47, 61, 13].to_vec());
+        assert_eq!(updates.last().unwrap(), &[97, 13, 75, 29, 47].to_vec())
+    }
     #[test]
     fn test_distance() {
         let list = [[3, 4, 2, 1, 3, 3].to_vec(), [4, 3, 5, 3, 9, 3].to_vec()].to_vec();
