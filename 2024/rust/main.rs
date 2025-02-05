@@ -1,10 +1,176 @@
+use radix_fmt::*;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-fn main() {}
+#[derive(Debug, Clone, Eq, PartialEq)]
+enum Instruction {
+    MULTIPLY,
+    ADD,
+    CONCAT,
+}
+// - binary string as array of operations
+#[test]
+fn test_get_operation_chains() {
+    use Instruction::*;
+    let numbers = [0, 1, 2].to_vec();
+    assert_eq!(get_operation_chains(numbers.len() as u32).len(), 9);
+    let mut expected = [].to_vec();
+    expected.push([MULTIPLY, MULTIPLY].to_vec());
+    expected.push([MULTIPLY, ADD].to_vec());
+    expected.push([MULTIPLY, CONCAT].to_vec());
+    expected.push([ADD, MULTIPLY].to_vec());
+
+    for i in 0..numbers.len() {
+        assert_eq!(
+            &get_operation_chains(numbers.len() as u32).get(i).unwrap(),
+            &expected.get(i).unwrap()
+        );
+    }
+    let numbers = [0, 1, 2, 3].to_vec();
+    let mut expected = [].to_vec();
+    expected.push([MULTIPLY, MULTIPLY, MULTIPLY].to_vec());
+    expected.push([MULTIPLY, MULTIPLY, ADD].to_vec());
+    expected.push([MULTIPLY, MULTIPLY, CONCAT].to_vec());
+    expected.push([MULTIPLY, ADD, MULTIPLY].to_vec());
+    // ..... skipping most
+    expected.push([CONCAT, CONCAT, CONCAT].to_vec());
+
+    assert_eq!(get_operation_chains(numbers.len() as u32).len(), 27);
+    for i in 0..numbers.len() {
+        assert_eq!(
+            &get_operation_chains(numbers.len() as u32).get(i).unwrap(),
+            &expected.get(i).unwrap()
+        );
+    }
+    println!("{:?}", get_operation_chains(numbers.len() as u32));
+    assert_eq!(
+        &get_operation_chains(numbers.len() as u32).last().unwrap(),
+        &expected.last().unwrap()
+    );
+}
+fn get_operation_chains(vec_len: u32) -> Vec<Vec<Instruction>> {
+    let mut ops: Vec<Vec<Instruction>> = Vec::new();
+    let num_required_operations = 3_u32.pow(vec_len as u32 - 1);
+
+    for i in 0..num_required_operations {
+        let mut op: Vec<Instruction> = Vec::new();
+        let s = format!(
+            "{:0>width$}",
+            format!("{}", radix(i, 3)),
+            width = vec_len as usize - 1
+        );
+
+        for c in s.trim().chars() {
+            let c = c as i32 - 0x30;
+            match c {
+                0 => {
+                    op.push(Instruction::MULTIPLY);
+                }
+                1 => {
+                    op.push(Instruction::ADD);
+                }
+                2 => {
+                    op.push(Instruction::CONCAT);
+                }
+                _ => {
+                    todo!()
+                }
+            }
+        }
+        ops.push(op);
+    }
+    return ops;
+}
+fn check_if_calculation_is_doable(
+    input: (u64, &Vec<u64>),
+    mut operations: Vec<Vec<Instruction>>,
+) -> bool {
+    let (sum, numbers) = input;
+
+    'outer: loop {
+        match operations.pop() {
+            None => break,
+            Some(operation) => {
+                let mut calc = *numbers.get(0).unwrap();
+                let mut i = 1;
+
+                for (instruction_index, instruction) in operation.iter().enumerate() {
+                    calc = match instruction {
+                        Instruction::ADD => calc + *numbers.get(i).unwrap(),
+                        Instruction::MULTIPLY => calc * *numbers.get(i).unwrap(),
+                        Instruction::CONCAT => {
+                            let mut calc_as_string = calc.to_string();
+                            calc_as_string.push_str(&numbers.get(i).unwrap().to_string());
+                            calc_as_string.parse().unwrap()
+                        }
+                    };
+                    i += 1;
+                    if calc > sum {
+                        if instruction_index < 5 {
+                            operations = operations
+                                .into_iter()
+                                .filter(|op| keep_operation(op, &operation, instruction_index))
+                                .collect();
+                        }
+                        continue 'outer;
+                    }
+                }
+                if sum == calc {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+fn keep_operation(test: &Vec<Instruction>, bad: &Vec<Instruction>, index: usize) -> bool {
+    let ret = test[0..=index] != bad[0..=index];
+
+    return ret;
+}
+fn main() {
+    let numbers = [10, 19].to_vec();
+    let operations = get_operation_chains(numbers.len() as u32);
+    assert!(check_if_calculation_is_doable((190, &numbers), operations));
+    assert!(check_if_calculation_is_doable(
+        (156, &[15, 6].to_vec()),
+        get_operation_chains(numbers.len() as u32)
+    ));
+    assert!(check_if_calculation_is_doable(
+        (3267, &[81, 40, 27].to_vec()),
+        get_operation_chains(3)
+    ));
+    assert!(check_if_calculation_is_doable(
+        (292, &[11, 6, 16, 20].to_vec()),
+        get_operation_chains(4)
+    ));
+
+    let input = read_data_to_vec_of_tuples("../data/input_7a.txt".to_string());
+    let mut res = 0;
+    for (sum, numbers) in input.iter() {
+        let operations = get_operation_chains(numbers.len() as u32);
+        if check_if_calculation_is_doable((*sum, numbers), operations) {
+            res += sum;
+        }
+    }
+    assert_eq!(res, 11387);
+    let input = read_data_to_vec_of_tuples("../data/input_7b.txt".to_string());
+    let mut res = 0;
+    for (sum, numbers) in input.iter() {
+        let operations = get_operation_chains(numbers.len() as u32);
+        if check_if_calculation_is_doable((*sum, numbers), operations) {
+            res += sum;
+        }
+    }
+    assert_eq!(res, 104824810233437);
+    // too low
+    assert_ne!(res, 104822186660711);
+}
+
 #[test]
 fn test_read_data_to_vec_of_tuples() {
     let ret = read_data_to_vec_of_tuples("../data/input_7a.txt".to_string());
@@ -16,7 +182,7 @@ fn test_read_data_to_vec_of_tuples() {
     assert_eq!(sum, &292);
     assert_eq!(elements, &[11, 6, 16, 20].to_vec());
 }
-fn read_data_to_vec_of_tuples(path: String) -> Vec<(u32, Vec<u32>)> {
+fn read_data_to_vec_of_tuples(path: String) -> Vec<(u64, Vec<u64>)> {
     let mut ret = Vec::new();
     if let Ok(lines) = read_lines(path) {
         for line in lines.map_while(Result::ok) {
@@ -24,8 +190,8 @@ fn read_data_to_vec_of_tuples(path: String) -> Vec<(u32, Vec<u32>)> {
                 .split(": ")
                 .map(|element| element.to_string())
                 .collect();
-            let sum = elements.first().unwrap().parse().unwrap();
-            let elements: Vec<u32> = elements
+            let sum: u64 = elements.first().unwrap().parse().unwrap();
+            let elements: Vec<u64> = elements
                 .last()
                 .unwrap()
                 .split(" ")
@@ -472,7 +638,6 @@ fn find_cross_hits(haystack: &Vec<Vec<char>>, needle: &Vec<char>) -> u16 {
                 3,
                 3,
             );
-            let (x, y) = (x_start - 1, y_start - 1);
             if &possible_match == needle || possible_match == needle_reverse {
                 let possible_match_2 = extract_string(
                     haystack,
