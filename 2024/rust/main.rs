@@ -5,6 +5,39 @@ use std::io::{self, BufRead};
 use std::path::Path;
 
 fn main() {}
+#[test]
+fn test_read_data_to_vec_of_tuples() {
+    let ret = read_data_to_vec_of_tuples("../data/input_7a.txt".to_string());
+    assert_eq!(ret.len(), 9);
+    let (sum, elements) = ret.first().unwrap();
+    assert_eq!(sum, &190);
+    assert_eq!(elements, &[10, 19].to_vec());
+    let (sum, elements) = ret.last().unwrap();
+    assert_eq!(sum, &292);
+    assert_eq!(elements, &[11, 6, 16, 20].to_vec());
+}
+fn read_data_to_vec_of_tuples(path: String) -> Vec<(u32, Vec<u32>)> {
+    let mut ret = Vec::new();
+    if let Ok(lines) = read_lines(path) {
+        for line in lines.map_while(Result::ok) {
+            let elements: Vec<String> = line
+                .split(": ")
+                .map(|element| element.to_string())
+                .collect();
+            let sum = elements.first().unwrap().parse().unwrap();
+            let elements: Vec<u32> = elements
+                .last()
+                .unwrap()
+                .split(" ")
+                .map(|e| e.parse().unwrap())
+                .collect();
+            println!("{sum}: {elements:?}");
+            ret.push((sum, elements))
+        }
+    }
+
+    return ret;
+}
 fn find_start(input: &Vec<Vec<char>>) -> (i32, i32) {
     let (x, y) = (0, 0);
     let len = input.len();
