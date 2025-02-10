@@ -4,6 +4,53 @@ use std::io::{self, BufRead};
 use std::path::Path;
 
 #[test]
+fn test_find_line_hits() {
+    let haystack = "SAMXXCXMAS".chars().collect();
+    let needle = "XMAS".chars().collect();
+
+    assert_eq!(find_line_hits(&haystack, &needle), 1);
+
+    let haystack = "XMAS".chars().collect();
+    assert_eq!(find_line_hits(&haystack, &needle), 1);
+
+    let haystack = "XMASXX".chars().collect();
+    assert_eq!(find_line_hits(&haystack, &needle), 1);
+
+    let haystack = ['M', 'S', 'X', 'M', 'A', 'X', 'S', 'A', 'M', 'X'].to_vec();
+    let needle = ['S', 'A', 'M', 'X'].to_vec();
+
+    assert_eq!(find_line_hits(&haystack, &needle), 1);
+}
+pub fn find_line_hits(haystack: &Vec<char>, needle: &Vec<char>) -> u16 {
+    if haystack.len() < needle.len() {
+        return 0;
+    }
+    if haystack.len() == needle.len() {
+        if haystack == needle {
+            return 1;
+        }
+        return 0;
+    }
+    let first_char = needle.first().unwrap();
+    let needle_max_index = needle.len() - 1;
+    let haystack_max_index = haystack.len() - 1;
+    let mut hits = 0;
+
+    let positions = position_of_char(haystack, first_char);
+    for position in positions {
+        if position + needle_max_index > haystack_max_index {
+            continue;
+        }
+        let partial = &haystack[position..=position + needle_max_index];
+
+        if partial == needle {
+            hits += 1;
+        }
+    }
+    return hits;
+}
+
+#[test]
 fn test_read_data_to_vec_of_tuples() {
     let ret = read_data_to_vec_of_tuples("../data/input_7a.txt".to_string());
     assert_eq!(ret.len(), 9);

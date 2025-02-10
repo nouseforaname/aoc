@@ -253,6 +253,7 @@ fn check_update_ordering(
     rules: &HashMap<i32, Vec<u16>>,
     input: &Vec<u16>,
 ) -> (bool, Option<i32>, Option<i32>) {
+    // clean, offending element positions
     for (index, element) in input.iter().enumerate() {
         match rules.get(&(*element as i32)) {
             Some(rule) => {
@@ -376,34 +377,6 @@ fn find_cross_hits(haystack: &Vec<Vec<char>>, needle: &Vec<char>) -> u16 {
         }
     }
 
-    return hits;
-}
-fn find_line_hits(haystack: &Vec<char>, needle: &Vec<char>) -> u16 {
-    if haystack.len() < needle.len() {
-        return 0;
-    }
-    if haystack.len() == needle.len() {
-        if haystack == needle {
-            return 1;
-        }
-        return 0;
-    }
-    let first_char = needle.first().unwrap();
-    let needle_max_index = needle.len() - 1;
-    let haystack_max_index = haystack.len() - 1;
-    let mut hits = 0;
-
-    let positions = position_of_char(haystack, first_char);
-    for position in positions {
-        if position + needle_max_index > haystack_max_index {
-            continue;
-        }
-        let partial = &haystack[position..=position + needle_max_index];
-
-        if partial == needle {
-            hits += 1;
-        }
-    }
     return hits;
 }
 
@@ -942,6 +915,7 @@ mod tests {
             [(2, 4), (8, 5)].to_vec()
         );
     }
+
     #[test]
     fn test_scan_test_with_find_line_hits() {
         let mut input: Vec<Vec<char>> = Vec::new();
@@ -954,24 +928,9 @@ mod tests {
         let hits = scan(&input, "XMAS".to_string());
         assert_eq!(hits, 18);
     }
+
     #[test]
     fn test_word_search() {
-        let haystack = "SAMXXCXMAS".chars().collect();
-        let needle = "XMAS".chars().collect();
-
-        assert_eq!(find_line_hits(&haystack, &needle), 1);
-
-        let haystack = "XMAS".chars().collect();
-        assert_eq!(find_line_hits(&haystack, &needle), 1);
-
-        let haystack = "XMASXX".chars().collect();
-        assert_eq!(find_line_hits(&haystack, &needle), 1);
-
-        let haystack = ['M', 'S', 'X', 'M', 'A', 'X', 'S', 'A', 'M', 'X'].to_vec();
-        let needle = ['S', 'A', 'M', 'X'].to_vec();
-
-        assert_eq!(find_line_hits(&haystack, &needle), 1);
-
         let mut input: Vec<Vec<char>> = Vec::new();
         if let Ok(lines) = read_lines("../data/input_4a.txt") {
             for line in lines.map_while(Result::ok) {
