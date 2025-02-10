@@ -151,20 +151,11 @@ fn find_path_and_loops(
         }
         direction = next_direction(direction);
     }
-
-    let mut path_length = 0;
-
-    for y in 0..input.len() {
-        path_length += input
-            .get(y)
-            .unwrap()
-            .iter()
-            .filter(|element| *element == &'X')
-            .collect::<Vec<&char>>()
-            .len();
-    }
-
-    return (path_length as i32, possible_loops);
+    let unique_fields_walked = input
+        .iter()
+        .map(|line| line.iter().filter(|&e| *e == 'X').count() as i32)
+        .sum();
+    return (unique_fields_walked, possible_loops);
 }
 fn check_for_loop(input: &Vec<Vec<char>>, start: (i32, i32), direction: (i32, i32)) -> bool {
     let mut obstacles = [].to_vec();
@@ -533,89 +524,55 @@ fn parse_string_for_mul_instructions(input: &String, filter: Option<Regex>) -> V
     }
     return ret;
 }
-// 2nd return element contains either the offending element or the length of the vec if the series is safe
-fn is_series_safe(row: &Vec<u32>, direction: (i32, i32), dampener: bool) -> (bool, usize) {
-    let length = row.len() - 1;
-    let distance_range = 1..4;
-    let mut offender = 0;
-    let mut is_safe = true;
-    for current in 0..length {
-        let next = current + 1;
-        match direction {
-            UP => {
-                if row[current] > row[next] {
-                    is_safe = false;
-                    offender = current;
-                }
-            }
-            DOWN => {
-                if row[current] < row[next] {
-                    is_safe = false;
-                    offender = current;
-                }
-            }
-            _ => todo!(),
-        }
-        if !distance_range.contains(&distance(row[current], row[next])) {
-            // if we're at the 2nd to last element, and every other check passed, then the offending distance is introduced by the last element
-            if current == length - 1 {
-                offender = next;
-            } else {
-                offender = current;
-            }
-            is_safe = false;
-        }
-        if !is_safe {
-            if dampener {
-                let mut row_without_current = row.clone();
-                row_without_current.remove(current);
-                let (safe_without_current, _) =
-                    is_series_safe(&row_without_current, direction, false);
 
-                if safe_without_current {
-                    return (safe_without_current, current);
-                }
-
-                let mut row_without_next = row.clone();
-                row_without_next.remove(next);
-                let (safe_without_next, _) = is_series_safe(&row_without_next, direction, false);
-                if safe_without_next {
-                    return (safe_without_next, next);
-                }
-            }
-            break;
+fn is_series_safe(row: &Vec<u32>, dampener: bool) -> bool {
+    let mut possible_offenders = Vec::new();
+    let mut sorted = row.is_sorted_by(|a, b| {
+        let sorted = a < b && 4 > b - a && b - a > 0;
+        if !sorted {
+            let offender_index = row.iter().position(|&el| el == *a).unwrap();
+            possible_offenders.extend([offender_index, offender_index + 1]);
         }
+        sorted
+    });
+    if sorted {
+        return true;
     }
-    if is_safe {
-        return (is_safe, row.len());
+    sorted = row.is_sorted_by(|a, b| {
+        let sorted = a > b && 4 > a - b && a - b > 0;
+        if !sorted {
+            let offender_index = row.iter().position(|&el| el == *a).unwrap();
+            possible_offenders.extend([offender_index, offender_index + 1]);
+        }
+        sorted
+    });
+
+    if sorted {
+        return true;
     }
-    return (is_safe, offender);
+
+    if dampener {
+        possible_offenders.sort_unstable();
+        possible_offenders.dedup();
+        return possible_offenders
+            .iter()
+            .find(|&e| {
+                let mut row = row.clone();
+                row.remove(*e);
+                is_series_safe(&row, false)
+            })
+            .is_some();
+    }
+
+    return false;
 }
-fn check_reactor_levels(rows: &Vec<Vec<u32>>, dampener: bool) -> Vec<bool> {
+
+fn count_safe_reactor_levels(rows: &Vec<Vec<u32>>, dampener: bool) -> usize {
     let mut ret: Vec<bool> = Vec::new();
     for row in rows.to_vec() {
-        let mut safe: bool;
-        (safe, _) = is_series_safe(&row.to_vec(), UP, dampener);
-        if safe {
-            ret.push(true);
-            continue;
-        }
-        (safe, _) = is_series_safe(&row.to_vec(), DOWN, dampener);
-        if safe {
-            ret.push(true);
-            continue;
-        }
-        ret.push(false);
+        ret.push(is_series_safe(&row, dampener));
     }
-    return ret;
-}
-fn count_safe_reactor_reports(reports: &Vec<bool>) -> u32 {
-    return reports
-        .to_vec()
-        .iter()
-        .filter(|element| **element)
-        .collect::<Vec<_>>()
-        .len() as u32;
+    return ret.iter().filter(|&e| *e).count();
 }
 
 #[cfg(test)]
@@ -871,77 +828,83 @@ mod tests {
         );
     }
     #[test]
-    fn reactor_level_returns() {
-        let list = read_ordered_list_data_to_vec("../data/input_2a.tsv").to_vec();
-        let reactor_levels = check_reactor_levels(&list, false).to_vec();
-        assert_eq!(reactor_levels.get(0).unwrap(), &true);
-        assert_eq!(reactor_levels.get(1).unwrap(), &false);
-        assert_eq!(reactor_levels.get(2).unwrap(), &false);
-        assert_eq!(reactor_levels.get(3).unwrap(), &false);
-        assert_eq!(reactor_levels.get(4).unwrap(), &false);
-        assert_eq!(reactor_levels.get(5).unwrap(), &true);
-        assert_eq!(count_safe_reactor_reports(&reactor_levels), 2);
+    fn test_count_safe_rector_reports() {
+        let list = read_ordered_list_data_to_vec("../data/input_2.tsv").to_vec();
+        let reactor_levels = count_safe_reactor_levels(&list, false);
+        assert_eq!(reactor_levels, 680);
 
-        let reactor_levels = check_reactor_levels(&list, true).to_vec();
-        assert_eq!(reactor_levels.get(0).unwrap(), &true);
-        assert_eq!(reactor_levels.get(1).unwrap(), &false);
-        assert_eq!(reactor_levels.get(2).unwrap(), &false);
-        assert_eq!(reactor_levels.get(3).unwrap(), &true);
-        assert_eq!(reactor_levels.get(4).unwrap(), &true);
-        assert_eq!(reactor_levels.get(5).unwrap(), &true);
-        assert!(count_safe_reactor_reports(&reactor_levels) == 4);
+        let list = read_ordered_list_data_to_vec("../data/input_2.tsv").to_vec();
+        let reactor_levels = count_safe_reactor_levels(&list, true);
+        assert_eq!(reactor_levels, 710);
     }
 
     #[test]
     fn test_is_series_safe() {
         // clean down series with proper distance
         let test = [7, 6, 4, 2, 1].to_vec();
-        assert!(is_series_safe(&test, DOWN, false) == (true, test.len()));
-        assert_eq!(is_series_safe(&test, UP, false), (false, 0));
+        assert!(is_series_safe(&test, false));
+
         // clean up series with proper distance
         let test = [1, 2, 4, 6, 9].to_vec();
-        assert!(is_series_safe(&test, UP, false) == (true, test.len()));
-        assert!(is_series_safe(&test, DOWN, false) == (false, 0));
+        assert!(is_series_safe(&test, false));
 
         //first element bad in up series
         let test = [5, 4, 7, 8, 9].to_vec();
-        assert!(is_series_safe(&test, UP, false) == (false, 0));
-        assert!(is_series_safe(&test, DOWN, false) == (false, 1));
-
-        let mut test_remove = test.clone();
-        test_remove.remove(0);
-        assert!(is_series_safe(&test_remove, UP, false) == (true, test_remove.len()));
+        assert_eq!(is_series_safe(&test, false), false);
+        //works with dampener
+        assert_eq!(is_series_safe(&test, true), true);
 
         ////first element bad in down series
-        let test = [4, 4, 3, 2, 1].to_vec();
-        assert!(is_series_safe(&test, UP, false) == (false, 0));
-        assert!(is_series_safe(&test, DOWN, false) == (false, 0));
-
-        let mut test_remove = test.clone();
-        test_remove.remove(0);
-        assert!(is_series_safe(&test_remove, UP, false) == (false, 0));
-        assert!(is_series_safe(&test_remove, DOWN, false) == (true, test_remove.len()));
+        let test = [3, 4, 3, 2, 1].to_vec();
+        assert_eq!(is_series_safe(&test, false), false);
+        //works with dampener
+        assert_eq!(is_series_safe(&test, true), true);
 
         //last element bad with too high distance up series
         let test = [1, 3, 6, 7, 19].to_vec();
-        assert_eq!(is_series_safe(&test, UP, false), (false, test.len() - 1));
+        assert_eq!(is_series_safe(&test, false), false);
+        //works with dampener
+        assert_eq!(is_series_safe(&test, true), true);
 
         //last element bad with too high distance down series
         let test = [33, 31, 29, 27, 19].to_vec();
-        assert_eq!(is_series_safe(&test, DOWN, false), (false, test.len() - 1));
+        //works with dampener
+        assert_eq!(is_series_safe(&test, false), false);
 
         //middle element bad with direction
         let test = [1, 3, 2, 4, 5].to_vec();
-        assert_eq!(is_series_safe(&test, UP, false), (false, 1));
+        assert_eq!(is_series_safe(&test, false), false);
+        //works with dampener
+        assert_eq!(is_series_safe(&test, true), true);
 
-        let list = read_ordered_list_data_to_vec("../data/input_2.tsv").to_vec();
-        let reactor_levels = check_reactor_levels(&list, false).to_vec();
-        assert_eq!(count_safe_reactor_reports(&reactor_levels), 680);
+        // two bad distances,
+        let test = [1, 1, 2, 3, 4, 4].to_vec();
+        assert_eq!(is_series_safe(&test, true), false);
 
-        let list = read_ordered_list_data_to_vec("../data/input_2.tsv").to_vec();
-        let reactor_levels = check_reactor_levels(&list, true).to_vec();
-        assert_eq!(count_safe_reactor_reports(&reactor_levels), 710);
+        // two direction changes
+        let test = [1, 3, 2, 5, 4, 6].to_vec();
+        assert_eq!(is_series_safe(&test, true), false);
+
+        // bad distance and direction change
+        let test = [1, 4, 2, 5, 9].to_vec();
+        assert_eq!(is_series_safe(&test, true), false);
+
+        let list = read_ordered_list_data_to_vec("../data/input_2a.tsv").to_vec();
+        assert_eq!(is_series_safe(&list[0], false), true);
+        assert_eq!(is_series_safe(&list[1], false), false);
+        assert_eq!(is_series_safe(&list[2], false), false);
+        assert_eq!(is_series_safe(&list[3], false), false);
+        assert_eq!(is_series_safe(&list[4], false), false);
+        assert_eq!(is_series_safe(&list[5], false), true);
+
+        assert_eq!(is_series_safe(&list[0], true), true);
+        assert_eq!(is_series_safe(&list[1], true), false);
+        assert_eq!(is_series_safe(&list[2], true), false);
+        assert_eq!(is_series_safe(&list[3], true), true);
+        assert_eq!(is_series_safe(&list[4], true), true);
+        assert_eq!(is_series_safe(&list[5], true), true);
     }
+
     #[test]
     fn vector_element_multiplier() {
         let input = [(2, 4), (5, 5), (11, 8), (8, 5)].to_vec();
