@@ -645,9 +645,7 @@ fn extract_string(
     return ret;
 }
 
-fn distance_of_all_elements(list: &Vec<Vec<u32>>) -> u64 {
-    let mut list_a: Vec<u32> = list.get(0).unwrap().to_vec();
-    let mut list_b: Vec<u32> = list.get(1).unwrap().to_vec();
+fn distance_of_all_elements(list_a: &mut Vec<u32>, list_b: &mut Vec<u32>) -> u64 {
     list_a.sort();
     list_b.sort();
     let mut sum: u64 = 0;
@@ -672,11 +670,12 @@ fn similarity_score_of_all_elements(list_a: &Vec<u32>, list_b: &Vec<u32>) -> u64
         .for_each(|element| score += element);
     return score;
 }
+
 fn sum_of_tuple_multiplications(input: &Vec<(u32, u32)>) -> u64 {
     let mut sum: u64 = 0;
-    for (left, right) in input {
+    input.iter().for_each(|(left, right)| {
         sum += *left as u64 * *right as u64;
-    }
+    });
     return sum;
 }
 fn parse_string_for_mul_instructions(input: &String, filter: Option<Regex>) -> Vec<(u32, u32)> {
@@ -990,10 +989,17 @@ mod tests {
     }
     #[test]
     fn test_distance_of_all_elements() {
-        let list = [[3, 4, 2, 1, 3, 3].to_vec(), [4, 3, 5, 3, 9, 3].to_vec()].to_vec();
-        assert!(distance_of_all_elements(&list) == 11);
+        assert_eq!(
+            distance_of_all_elements(
+                &mut [3, 4, 2, 1, 3, 3].to_vec(),
+                &mut [4, 3, 5, 3, 9, 3].to_vec()
+            ),
+            11
+        );
         let list = read_column_data_to_vec("../data/input_1.tsv");
-        assert!(distance_of_all_elements(&list) == 2176849);
+        assert_eq!(
+            distance_of_all_elements(&mut list[0].to_owned(), &mut list[1].to_owned()), 2176849
+        );
     }
 
     #[test]
