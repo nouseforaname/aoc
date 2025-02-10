@@ -205,7 +205,6 @@ fn find_path_and_loops(
                     "found obstacle {coord:?} {}",
                     direction_to_string(direction)
                 );
-                print_maze(input);
                 hit_obstacles.push((val, direction));
             }
             None => {
@@ -233,8 +232,6 @@ fn find_path_and_loops(
                                 next_coord(current_position, direction),
                                 'O',
                             ) {
-                                print_maze(input);
-
                                 assert!(write_char_to_coord(
                                     input,
                                     next_coord(current_position, direction),
@@ -280,13 +277,6 @@ fn find_path_and_loops(
 
     return (path_length as i32, possible_loops);
 }
-fn print_maze(input: &Vec<Vec<char>>) {
-    println!("  0123456789");
-    for y in 0..input.len() {
-        println!("{y} {}", input.get(y).unwrap().iter().collect::<String>());
-    }
-}
-
 fn check_for_loop(input: &Vec<Vec<char>>, start: (i32, i32), direction: (i32, i32)) -> bool {
     let mut obstacles = [].to_vec();
 
