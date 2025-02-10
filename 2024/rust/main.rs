@@ -4,6 +4,8 @@ use lib::maze::*;
 use regex::Regex;
 use std::collections::HashMap;
 
+fn main() {}
+
 #[test]
 fn test_check_if_calculation_is_doable() {
     let numbers = [10, 19].to_vec();
@@ -73,7 +75,6 @@ fn check_if_calculation_is_doable(input: (u64, &Vec<u64>), with_or_operator: boo
     };
 }
 
-fn main() {}
 fn find_path_and_loops(
     start: (i32, i32),
     direction: (i32, i32),
@@ -110,11 +111,10 @@ fn find_path_and_loops(
                 match find_next_obstacle(current_position, next_dir, input) {
                     (Some(blocker_location), _) => {
                         // placing blocker in front would make us hit another blocker
-
                         // if that blocker was already hit from the same direction before, that's a loop
                         if hit_obstacles.contains(&(blocker_location, next_dir)) {
                             possible_loops += 1;
-                            println!("direct confirmation, {possible_loops}");
+                            //println!("direct confirmation, {possible_loops}");
                         } else {
                             if write_char_to_coord(
                                 input,
@@ -128,9 +128,9 @@ fn find_path_and_loops(
                                 ));
                                 if check_for_loop(input, current_position, next_dir) {
                                     possible_loops += 1;
-                                    println!("walking confirmation, {possible_loops}");
+                                    //println!("walking confirmation, {possible_loops}");
                                 } else {
-                                    println!("disproven by walking");
+                                    //println!("disproven by walking");
                                 };
                                 assert!(write_char_to_coord(
                                     input,
@@ -157,6 +157,7 @@ fn find_path_and_loops(
         .sum();
     return (unique_fields_walked, possible_loops);
 }
+
 fn check_for_loop(input: &Vec<Vec<char>>, start: (i32, i32), direction: (i32, i32)) -> bool {
     let mut obstacles = [].to_vec();
 
