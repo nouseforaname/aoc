@@ -1010,16 +1010,9 @@ mod tests {
     #[test]
     fn test_similarity() {
         let list = read_column_data_to_vec("../data/input_1.tsv");
-        assert!(similarity_score_of_all_elements(&list) == 23384288);
+        assert!(similarity_score_of_all_elements(&list[0], &list[1]) == 23384288);
     }
 
-    #[test]
-    fn reading_list() {
-        let list = read_ordered_list_data_to_vec("../data/input_2.tsv").to_vec();
-        assert!(list.len() == 1000);
-        let list = read_ordered_list_data_to_vec("../data/input_2a.tsv").to_vec();
-        assert!(list.len() == 6);
-    }
     #[test]
     fn test_find_cross() {
         let mut input: Vec<Vec<char>> = Vec::new();

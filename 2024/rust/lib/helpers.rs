@@ -22,6 +22,14 @@ pub fn read_column_data_to_vec(filename: &str) -> Vec<Vec<u32>> {
     };
     return ret;
 }
+
+#[test]
+fn reading_list() {
+    let list = read_ordered_list_data_to_vec("../data/input_2.tsv").to_vec();
+    assert!(list.len() == 1000);
+    let list = read_ordered_list_data_to_vec("../data/input_2a.tsv").to_vec();
+    assert!(list.len() == 6);
+}
 pub fn read_ordered_list_data_to_vec(filename: &str) -> Vec<Vec<u32>> {
     let mut ret = Vec::<Vec<u32>>::new();
 
