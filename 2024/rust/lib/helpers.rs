@@ -69,3 +69,18 @@ pub fn read_to_vec_vec_char(path: &str) -> Vec<Vec<char>> {
 
     return ret;
 }
+#[test]
+fn test_distance() {
+    assert_eq!(distance(0, 0), 0);
+    assert_eq!(distance(1, 0), 1);
+    assert_eq!(distance(2, 0), 2);
+    assert_eq!(distance(0, 0), 0);
+    assert_eq!(distance(0, 1), 1);
+    assert_eq!(distance(0, 2), 2);
+}
+pub fn distance(element_a: u32, element_b: u32) -> u64 {
+    if element_a > element_b {
+        return (element_a - element_b) as u64;
+    }
+    (element_b - element_a) as u64
+}

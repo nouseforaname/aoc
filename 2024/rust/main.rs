@@ -648,12 +648,7 @@ fn extract_string(
     }
     return ret;
 }
-fn distance(element_a: u32, element_b: u32) -> u64 {
-    if element_a > element_b {
-        return (element_a - element_b) as u64;
-    }
-    (element_b - element_a) as u64
-}
+
 fn distance_of_all_elements(list: &Vec<Vec<u32>>) -> u64 {
     let mut list_a: Vec<u32> = list.get(0).unwrap().to_vec();
     let mut list_b: Vec<u32> = list.get(1).unwrap().to_vec();
@@ -1000,7 +995,7 @@ mod tests {
         assert_eq!(updates.last().unwrap(), &[97, 13, 75, 29, 47].to_vec())
     }
     #[test]
-    fn test_distance() {
+    fn test_distance_of_all_elements() {
         let list = [[3, 4, 2, 1, 3, 3].to_vec(), [4, 3, 5, 3, 9, 3].to_vec()].to_vec();
         assert!(distance_of_all_elements(&list) == 11);
         let list = read_column_data_to_vec("../data/input_1.tsv");
