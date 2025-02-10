@@ -661,22 +661,20 @@ fn distance_of_all_elements(list: &Vec<Vec<u32>>) -> u64 {
     }
     return sum;
 }
-fn similarity_score_of_all_elements(list: &Vec<Vec<u32>>) -> u64 {
-    let mut list_a: Vec<u32> = list.get(0).unwrap().to_vec();
-    let mut list_b: Vec<u32> = list.get(1).unwrap().to_vec();
-    list_a.sort();
-    list_b.sort();
-    let mut sim_score = 0;
-
-    for number in list_a {
-        let times_present = list_b
-            .iter()
-            .filter(|element| **element == number)
-            .collect::<Vec<&u32>>()
-            .len();
-        sim_score += (times_present as u32) * number;
-    }
-    return sim_score.into();
+fn similarity_score_of_all_elements(list_a: &Vec<u32>, list_b: &Vec<u32>) -> u64 {
+    let mut score: u64 = 0;
+    list_a
+        .iter()
+        .map(|&a| {
+            a as u64
+                * list_b
+                    .iter()
+                    .filter(|&b| a == *b)
+                    .collect::<Vec<&u32>>()
+                    .len() as u64
+        })
+        .for_each(|element| score += element);
+    return score;
 }
 fn sum_of_tuple_multiplications(input: &Vec<(u32, u32)>) -> u64 {
     let mut sum: u64 = 0;
