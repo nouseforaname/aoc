@@ -1,6 +1,98 @@
-use std::fs::File;
+use std::collections::HashMap;
+use std::fs::{read_to_string, File};
 use std::io::{self, BufRead};
 use std::path::Path;
+
+#[test]
+fn test_read_data_to_vec_of_tuples() {
+    let ret = read_data_to_vec_of_tuples("../data/input_7a.txt".to_string());
+    assert_eq!(ret.len(), 9);
+    let (sum, elements) = ret.first().unwrap();
+    assert_eq!(sum, &190);
+    assert_eq!(elements, &[10, 19].to_vec());
+    let (sum, elements) = ret.last().unwrap();
+    assert_eq!(sum, &292);
+    assert_eq!(elements, &[11, 6, 16, 20].to_vec());
+}
+
+pub fn read_book_printing_data(path: &str) -> (HashMap<i32, Vec<u16>>, Vec<Vec<u16>>) {
+    let mut rules = HashMap::<i32, Vec<u16>>::new();
+    let mut updates = Vec::new();
+
+    if let Ok(lines) = read_lines(path) {
+        for line in lines.map_while(Result::ok) {
+            if line == "".to_string() {
+                continue;
+            }
+            if !line.contains('|') {
+                let elements: Vec<u16> = line
+                    .split(',')
+                    .map(|element| element.parse::<u16>().unwrap())
+                    .collect();
+                if elements.len() > 0 {
+                    updates.push(elements);
+                }
+                continue;
+            }
+            let elements: Vec<i32> = line
+                .split('|')
+                .map(|element| element.parse::<i32>().unwrap())
+                .collect();
+
+            if elements.len() == 2 {
+                let key = elements.first().unwrap();
+                let value = elements.last().unwrap();
+
+                match rules.get_mut(key) {
+                    Some(val) => {
+                        val.push(*value as u16);
+                    }
+                    None => {
+                        rules.insert(*key, [*value as u16].to_vec());
+                    }
+                }
+                continue;
+            }
+        }
+    }
+
+    return (rules, updates);
+}
+pub fn read_data_to_vec_of_tuples(path: String) -> Vec<(u64, Vec<u64>)> {
+    let mut ret = Vec::new();
+    if let Ok(lines) = read_to_string(path) {
+        ret = lines
+            .lines()
+            .filter_map(|line| line.split_once(":"))
+            .map(|(sum, numbers)| {
+                let sum = sum.parse().unwrap();
+                let numbers = numbers
+                    .split_whitespace()
+                    .map(|e| e.parse().unwrap())
+                    .collect();
+                return (sum, numbers);
+            })
+            .collect();
+    }
+
+    return ret;
+}
+pub fn position_of_char(haystack: &Vec<char>, c: &char) -> Vec<usize> {
+    let mut all_elements = haystack.iter();
+    let mut positions = Vec::new();
+    let mut offset = 0;
+    loop {
+        match all_elements.position(|element| element == c) {
+            Some(pos) => {
+                offset += pos;
+                positions.push(offset);
+                offset += 1;
+            }
+            None => break,
+        }
+    }
+    return positions;
+}
 pub fn read_column_data_to_vec(filename: &str) -> Vec<Vec<u32>> {
     let mut ret = Vec::<Vec<u32>>::new();
     let mut init: bool = true;

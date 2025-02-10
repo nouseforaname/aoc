@@ -1,10 +1,9 @@
 mod lib;
 use lib::helpers::*;
+use lib::maze::*;
 use regex::Regex;
 use std::collections::HashMap;
-use std::fs::read_to_string;
 
-// - binary string as array of operations
 #[test]
 fn test_check_if_calculation_is_doable() {
     let numbers = [10, 19].to_vec();
@@ -75,112 +74,6 @@ fn check_if_calculation_is_doable(input: (u64, &Vec<u64>), with_or_operator: boo
 }
 
 fn main() {}
-
-#[test]
-fn test_read_data_to_vec_of_tuples() {
-    let ret = read_data_to_vec_of_tuples("../data/input_7a.txt".to_string());
-    assert_eq!(ret.len(), 9);
-    let (sum, elements) = ret.first().unwrap();
-    assert_eq!(sum, &190);
-    assert_eq!(elements, &[10, 19].to_vec());
-    let (sum, elements) = ret.last().unwrap();
-    assert_eq!(sum, &292);
-    assert_eq!(elements, &[11, 6, 16, 20].to_vec());
-}
-fn read_data_to_vec_of_tuples(path: String) -> Vec<(u64, Vec<u64>)> {
-    let mut ret = Vec::new();
-    if let Ok(lines) = read_to_string(path) {
-        ret = lines
-            .lines()
-            .filter_map(|line| line.split_once(":"))
-            .map(|(sum, numbers)| {
-                let sum = sum.parse().unwrap();
-                let numbers = numbers
-                    .split_whitespace()
-                    .map(|e| e.parse().unwrap())
-                    .collect();
-                return (sum, numbers);
-            })
-            .collect();
-    }
-
-    return ret;
-}
-fn find_start(input: &Vec<Vec<char>>) -> (i32, i32) {
-    let (x, y) = (0, 0);
-    let len = input.len();
-    for y in 0..len {
-        let line = input.get(y).unwrap();
-        let positions = position_of_char(&line, &'^');
-        if positions.len() > 0 {
-            return (*positions.get(0).unwrap() as i32, y as i32);
-        }
-    }
-
-    return (x, y);
-}
-fn next_coord(start: (i32, i32), direction: (i32, i32)) -> (i32, i32) {
-    return add_offset_to_coord(start, direction, 1);
-}
-fn next_direction(direction: (i32, i32)) -> (i32, i32) {
-    match direction {
-        UP => return RIGHT,
-        DOWN => return LEFT,
-        RIGHT => return DOWN,
-        LEFT => return UP,
-        _ => todo!(),
-    }
-}
-fn add_offset_to_coord(start: (i32, i32), direction: (i32, i32), distance: i32) -> (i32, i32) {
-    let (x, y) = start;
-    match direction {
-        UP => return (x, y - distance),
-        DOWN => return (x, y + distance),
-        RIGHT => return (x + distance, y),
-        LEFT => return (x - distance, y),
-        _ => todo!(),
-    }
-}
-fn direction_to_string(direction: (i32, i32)) -> String {
-    match direction {
-        DOWN => "DOWN".to_string(),
-        UP => "UP".to_string(),
-        LEFT => "LEFT".to_string(),
-        RIGHT => "RIGHT".to_string(),
-        _ => "".to_string(),
-    }
-}
-
-fn write_char_to_coord(input: &mut Vec<Vec<char>>, coord: (i32, i32), c: char) -> bool {
-    let (x, y) = coord;
-
-    match input.get_mut(y as usize) {
-        Some(line) => match line.get_mut(x as usize) {
-            Some(elem) => {
-                *elem = c;
-            }
-            None => return false,
-        },
-        None => return false,
-    }
-
-    return true;
-}
-const UP: (i32, i32) = (0, -1);
-const DOWN: (i32, i32) = (0, 1);
-const LEFT: (i32, i32) = (-1, 0);
-const RIGHT: (i32, i32) = (1, 0);
-fn can_place_obstacle(input: &Vec<Vec<char>>, coord: (i32, i32)) -> bool {
-    let (x, y) = coord;
-
-    match input.get(y as usize) {
-        Some(line) => match line.get(x as usize) {
-            Some(c) => c == &'.',
-            None => false,
-        },
-        None => false,
-    }
-}
 fn find_path_and_loops(
     start: (i32, i32),
     direction: (i32, i32),
@@ -388,49 +281,6 @@ fn check_update_ordering(
     return (true, None, None);
 }
 
-fn read_book_printing_data(path: &str) -> (HashMap<i32, Vec<u16>>, Vec<Vec<u16>>) {
-    let mut rules = HashMap::<i32, Vec<u16>>::new();
-    let mut updates = Vec::new();
-
-    if let Ok(lines) = read_lines(path) {
-        for line in lines.map_while(Result::ok) {
-            if line == "".to_string() {
-                continue;
-            }
-            if !line.contains('|') {
-                let elements: Vec<u16> = line
-                    .split(',')
-                    .map(|element| element.parse::<u16>().unwrap())
-                    .collect();
-                if elements.len() > 0 {
-                    updates.push(elements);
-                }
-                continue;
-            }
-            let elements: Vec<i32> = line
-                .split('|')
-                .map(|element| element.parse::<i32>().unwrap())
-                .collect();
-
-            if elements.len() == 2 {
-                let key = elements.first().unwrap();
-                let value = elements.last().unwrap();
-
-                match rules.get_mut(key) {
-                    Some(val) => {
-                        val.push(*value as u16);
-                    }
-                    None => {
-                        rules.insert(*key, [*value as u16].to_vec());
-                    }
-                }
-                continue;
-            }
-        }
-    }
-
-    return (rules, updates);
-}
 fn scan(input: &Vec<Vec<char>>, needle: String) -> u16 {
     let mut hits = 0;
     let num_rows = input.len() - 1;
@@ -564,22 +414,7 @@ fn find_line_hits(haystack: &Vec<char>, needle: &Vec<char>) -> u16 {
     }
     return hits;
 }
-fn position_of_char(haystack: &Vec<char>, c: &char) -> Vec<usize> {
-    let mut all_elements = haystack.iter();
-    let mut positions = Vec::new();
-    let mut offset = 0;
-    loop {
-        match all_elements.position(|element| element == c) {
-            Some(pos) => {
-                offset += pos;
-                positions.push(offset);
-                offset += 1;
-            }
-            None => break,
-        }
-    }
-    return positions;
-}
+
 fn extract_string(
     input: &Vec<Vec<char>>,
     start: (i32, i32),
@@ -998,7 +833,8 @@ mod tests {
         );
         let list = read_column_data_to_vec("../data/input_1.tsv");
         assert_eq!(
-            distance_of_all_elements(&mut list[0].to_owned(), &mut list[1].to_owned()), 2176849
+            distance_of_all_elements(&mut list[0].to_owned(), &mut list[1].to_owned()),
+            2176849
         );
     }
 
