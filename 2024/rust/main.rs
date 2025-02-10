@@ -1,12 +1,8 @@
-use regex::Regex;
-use std::collections::HashMap;
-use std::fs::{read_to_string, File};
-use std::io::{self, BufRead};
-use std::path::Path;
-use std::time::Instant;
-
 mod lib;
 use lib::helpers::*;
+use regex::Regex;
+use std::collections::HashMap;
+use std::fs::read_to_string;
 
 // - binary string as array of operations
 #[test]
@@ -39,7 +35,7 @@ fn test_check_if_calculation_is_doable() {
     let input = read_data_to_vec_of_tuples("../data/input_7b.txt".to_string());
 
     println!("--------starting");
-    let start = Instant::now();
+    let start = std::time::Instant::now();
     for (sum, numbers) in input.iter() {
         if check_if_calculation_is_doable((*sum, numbers), true) {
             res += sum;

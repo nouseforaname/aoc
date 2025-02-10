@@ -1,4 +1,4 @@
-use std::fs::{read_to_string, File};
+use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 pub fn read_column_data_to_vec(filename: &str) -> Vec<Vec<u32>> {
