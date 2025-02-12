@@ -71,49 +71,49 @@ fn scan(input: &Vec<Vec<char>>, needle: String) -> u16 {
     // https://github.com/rust-lang/rust/issues/70925 descending ranges dont work.
     return hits as u16;
 }
-    #[test]
-    fn test_scan_test_with_find_line_hits() {
-        let input: Vec<Vec<char>> = read_to_vec_vec_char("../data/input_4a.txt");
-        let hits = scan(&input, "XMAS".to_string());
-        assert_eq!(hits, 18);
-    }
+#[test]
+fn test_scan_test_with_find_line_hits() {
+    let input: Vec<Vec<char>> = read_to_vec_vec_char("../data/input_4a.txt");
+    let hits = scan(&input, "XMAS".to_string());
+    assert_eq!(hits, 18);
+}
 
-    #[test]
-    fn test_word_search() {
-        let mut input: Vec<Vec<char>> = Vec::new();
-        if let Ok(lines) = read_lines("../data/input_4a.txt") {
-            for line in lines.map_while(Result::ok) {
-                let chars: Vec<char> = line.chars().map(|c| c).collect();
-                input.push(chars);
-            }
+#[test]
+fn test_word_search() {
+    let mut input: Vec<Vec<char>> = Vec::new();
+    if let Ok(lines) = read_lines("../data/input_4a.txt") {
+        for line in lines.map_while(Result::ok) {
+            let chars: Vec<char> = line.chars().map(|c| c).collect();
+            input.push(chars);
         }
-        assert_eq!(
-            extract_vec_from_2d_vec(&input, (0, 0), (1, 1), 4, -1),
-            "MSXMAXSAMX".chars().collect::<Vec<char>>(),
-        );
-        assert_eq!(
-            extract_vec_from_2d_vec(&input, (1,0), (1, 1), 4, -1),
-            "MASAMXXAM".chars().collect::<Vec<char>>()
-        );
-        assert_eq!(
-            extract_vec_from_2d_vec(&input, (9, 9), (1, -1), 4, -1),
-            "".chars().collect::<Vec<char>>()
-        );
-        assert_eq!(
-            extract_vec_from_2d_vec(&input, (0, 9), (1, -1), 4, -1),
-            "MAXMMMMASM".chars().collect::<Vec<char>>()
-        );
-
-        let mut input: Vec<Vec<char>> = Vec::new();
-        if let Ok(lines) = read_lines("../data/input_4b.txt") {
-            for line in lines.map_while(Result::ok) {
-                let chars: Vec<char> = line.chars().map(|c| c).collect();
-                input.push(chars);
-            }
-        }
-        let hits = scan(&input, "XMAS".to_string());
-        assert_eq!(hits, 2567);
     }
+    assert_eq!(
+        extract_vec_from_2d_vec(&input, (0, 0), (1, 1), 4, -1),
+        "MSXMAXSAMX".chars().collect::<Vec<char>>(),
+    );
+    assert_eq!(
+        extract_vec_from_2d_vec(&input, (1, 0), (1, 1), 4, -1),
+        "MASAMXXAM".chars().collect::<Vec<char>>()
+    );
+    assert_eq!(
+        extract_vec_from_2d_vec(&input, (9, 9), (1, -1), 4, -1),
+        "".chars().collect::<Vec<char>>()
+    );
+    assert_eq!(
+        extract_vec_from_2d_vec(&input, (0, 9), (1, -1), 4, -1),
+        "MAXMMMMASM".chars().collect::<Vec<char>>()
+    );
+
+    let mut input: Vec<Vec<char>> = Vec::new();
+    if let Ok(lines) = read_lines("../data/input_4b.txt") {
+        for line in lines.map_while(Result::ok) {
+            let chars: Vec<char> = line.chars().map(|c| c).collect();
+            input.push(chars);
+        }
+    }
+    let hits = scan(&input, "XMAS".to_string());
+    assert_eq!(hits, 2567);
+}
 pub fn find_cross_hits(haystack: &Vec<Vec<char>>, needle: &Vec<char>) -> u16 {
     let center_index = needle.len() / 2;
     let mut hits = 0;
@@ -156,17 +156,17 @@ pub fn find_cross_hits(haystack: &Vec<Vec<char>>, needle: &Vec<char>) -> u16 {
 
     return hits;
 }
-    #[test]
-    fn test_find_cross() {
-        let input: Vec<Vec<char>> = read_to_vec_vec_char("../data/input_4c.txt");
-        assert_eq!(
-            9,
-            find_cross_hits(&input, &"MAS".chars().collect::<Vec<char>>())
-        );
+#[test]
+fn test_find_cross() {
+    let input: Vec<Vec<char>> = read_to_vec_vec_char("../data/input_4c.txt");
+    assert_eq!(
+        9,
+        find_cross_hits(&input, &"MAS".chars().collect::<Vec<char>>())
+    );
 
-        let input: Vec<Vec<char>> = read_to_vec_vec_char("../data/input_4b.txt");
-        assert_eq!(
-            2029,
-            find_cross_hits(&input, &"MAS".chars().collect::<Vec<char>>())
-        );
-    }
+    let input: Vec<Vec<char>> = read_to_vec_vec_char("../data/input_4b.txt");
+    assert_eq!(
+        2029,
+        find_cross_hits(&input, &"MAS".chars().collect::<Vec<char>>())
+    );
+}
