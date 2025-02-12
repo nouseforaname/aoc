@@ -26,7 +26,7 @@ fn test_write_char_to_coord() {
 
     assert_eq!(test, test2);
 }
-pub fn write_char_to_coord(input: &mut Vec<Vec<char>>, coord: (i32, i32), c: char) -> bool {
+pub fn write_char_to_coord(input: &mut Vec<Vec<char>>, coord: (u32, u32), c: char) -> bool {
     let (x, y) = coord;
 
     match input.get_mut(y as usize) {
@@ -158,12 +158,14 @@ pub const RIGHT: (i32, i32) = (1, 0);
 
 pub fn extract_vec_from_2d_vec(
     input: &Vec<Vec<char>>,
-    start: (i32, i32),
+    start: (u32, u32),
     direction: (i32, i32),
     min_length: i32,
     max_length: i32,
 ) -> Vec<char> {
     let (mut x, mut y) = start;
+    let (mut x, mut y) = (x as i64, y as i64);
+
     let mut ret: Vec<char> = Vec::new();
     let mut extracted_char_count = 0;
     let num_rows = input.len();
@@ -192,15 +194,15 @@ pub fn extract_vec_from_2d_vec(
                         Some(c) => {
                             ret.push(*c);
                             extracted_char_count += 1;
-                            y += delta_y;
-                            x += delta_x;
+                            y += delta_y as i64;
+                            x += delta_x as i64;
                             if extracted_char_count == max_length {
                                 break;
                             }
                             if y < 0 || x < 0 {
                                 break;
                             }
-                            if y >= num_rows as i32 || x >= row_length as i32 {
+                            if y as u32 >= num_rows as u32 || x as u32 >= row_length as u32 {
                                 break;
                             }
                         }

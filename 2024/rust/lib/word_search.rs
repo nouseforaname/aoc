@@ -15,8 +15,13 @@ fn scan(input: &Vec<Vec<char>>, needle: String) -> u16 {
             num_columns = (line.len() - 1) as i32;
             for column_index in 0..=num_columns {
                 // scan vertically on first pass only
-                let column =
-                    extract_vec_from_2d_vec(input, (column_index, 0), crate::DOWN, num_columns, -1);
+                let column = extract_vec_from_2d_vec(
+                    input,
+                    (column_index as u32, 0),
+                    crate::DOWN,
+                    num_columns,
+                    -1,
+                );
 
                 hits += find_line_hits(&column, &needle);
                 hits += find_line_hits(&column, &needle_reverse);
@@ -30,7 +35,7 @@ fn scan(input: &Vec<Vec<char>>, needle: String) -> u16 {
     let direction = (1, -1);
     let x: i32 = 0;
     for y in y_range {
-        let start = (x, y);
+        let start = (x as u32, y as u32);
         let line = extract_vec_from_2d_vec(&input, start, direction, needle.len() as i32, -1);
         hits += find_line_hits(&line, &needle);
         hits += find_line_hits(&line, &needle_reverse);
@@ -38,7 +43,7 @@ fn scan(input: &Vec<Vec<char>>, needle: String) -> u16 {
     let y = num_rows as i32;
     let x_range = 1..=(num_columns - (needle.len() - 1) as i32);
     for x in x_range {
-        let start = (x, y);
+        let start = (x as u32, y as u32);
 
         let line = extract_vec_from_2d_vec(&input, start, direction, needle.len() as i32, -1);
         hits += find_line_hits(&line, &needle);
@@ -48,7 +53,7 @@ fn scan(input: &Vec<Vec<char>>, needle: String) -> u16 {
     let x_range = (0..=(num_columns - (needle.len() - 1) as i32)).rev();
     let direction = (1, 1);
     for x in x_range {
-        let start = (x, y);
+        let start = (x as u32, y as u32);
         let line = extract_vec_from_2d_vec(&input, start, direction, needle.len() as i32, -1);
 
         hits += find_line_hits(&line, &needle);
@@ -57,7 +62,7 @@ fn scan(input: &Vec<Vec<char>>, needle: String) -> u16 {
     let y_range = 1..=(num_rows - (needle.len() - 1)) as i32;
     let x: i32 = 0;
     for y in y_range {
-        let start = (x, y);
+        let start = (x as u32, y as u32);
         let line = extract_vec_from_2d_vec(&input, start, direction, needle.len() as i32, -1);
         hits += find_line_hits(&line, &needle);
         hits += find_line_hits(&line, &needle_reverse);
@@ -129,7 +134,7 @@ pub fn find_cross_hits(haystack: &Vec<Vec<char>>, needle: &Vec<char>) -> u16 {
             }
             let possible_match = extract_vec_from_2d_vec(
                 haystack,
-                ((x_start - 1) as i32, (y_start - 1) as i32),
+                ((x_start - 1) as u32, (y_start - 1) as u32),
                 (1, 1),
                 3,
                 3,
@@ -137,7 +142,7 @@ pub fn find_cross_hits(haystack: &Vec<Vec<char>>, needle: &Vec<char>) -> u16 {
             if &possible_match == needle || possible_match == needle_reverse {
                 let possible_match_2 = extract_vec_from_2d_vec(
                     haystack,
-                    ((x_start - 1) as i32, (y_start + 1) as i32),
+                    ((x_start - 1) as u32, (y_start + 1) as u32),
                     (1, -1),
                     3,
                     3,

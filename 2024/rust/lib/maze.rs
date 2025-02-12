@@ -93,7 +93,7 @@ fn test_escape_maze_path_calc() {
 
     let (blocker_coord, distance) = find_next_obstacle((7, 7), DOWN, &maze);
     assert_eq!(blocker_coord, None);
-    assert_eq!(distance, 3);
+    assert_eq!(distance, 2);
 
     let mut maze = read_to_vec_vec_char("../data/input_6b.txt");
     let (ret, _) = find_path_and_loops((4, 6), UP, &mut maze);
@@ -105,7 +105,7 @@ fn test_escape_maze_path_calc() {
 }
 
 pub fn find_path_and_loops(
-    start: (i32, i32),
+    start: (u32, u32),
     direction: (i32, i32),
     input: &mut Vec<Vec<char>>,
 ) -> (i32, i32) {
@@ -135,7 +135,9 @@ pub fn find_path_and_loops(
             }
         }
         let next_dir = next_direction(direction);
-        while distance > 0 {
+        while distance != 0 {
+            println!("distance {distance}");
+
             if can_place_obstacle(input, next_coord(current_position, direction)) {
                 match find_next_obstacle(current_position, next_dir, input) {
                     (Some(blocker_location), _) => {
@@ -178,6 +180,7 @@ pub fn find_path_and_loops(
             distance -= 1;
             current_position = next_coord(current_position, direction);
         }
+        write_char_to_coord(input, current_position, 'X');
         direction = next_direction(direction);
     }
     let unique_fields_walked = input
@@ -187,7 +190,7 @@ pub fn find_path_and_loops(
     return (unique_fields_walked, possible_loops);
 }
 
-pub fn can_place_obstacle(input: &Vec<Vec<char>>, coord: (i32, i32)) -> bool {
+pub fn can_place_obstacle(input: &Vec<Vec<char>>, coord: (u32, u32)) -> bool {
     let (x, y) = coord;
 
     match input.get(y as usize) {
@@ -206,21 +209,21 @@ pub fn test_find_start() {
     let maze = read_to_vec_vec_char("../data/input_6a.txt");
     assert_eq!(find_start(&maze), (4, 7));
 }
-pub fn find_start(input: &Vec<Vec<char>>) -> (i32, i32) {
+pub fn find_start(input: &Vec<Vec<char>>) -> (u32, u32) {
     let (x, y) = (0, 0);
     let len = input.len();
     for y in 0..len {
         let line = input.get(y).unwrap();
         let positions = position_of_char(&line, &'^');
         if positions.len() > 0 {
-            return (*positions.get(0).unwrap() as i32, y as i32);
+            return (*positions.get(0).unwrap() as u32, y as u32);
         }
     }
 
     return (x, y);
 }
 
-pub fn next_coord(start: (i32, i32), direction: (i32, i32)) -> (i32, i32) {
+pub fn next_coord(start: (u32, u32), direction: (i32, i32)) -> (u32, u32) {
     return add_offset_to_coord(start, direction, 1);
 }
 
@@ -234,13 +237,14 @@ pub fn next_direction(direction: (i32, i32)) -> (i32, i32) {
     }
 }
 
-pub fn add_offset_to_coord(start: (i32, i32), direction: (i32, i32), distance: i32) -> (i32, i32) {
+pub fn add_offset_to_coord(start: (u32, u32), direction: (i32, i32), distance: i32) -> (u32, u32) {
     let (x, y) = start;
+    println!("{x}:{y}, {direction:?}");
     match direction {
-        UP => return (x, y - distance),
-        DOWN => return (x, y + distance),
-        RIGHT => return (x + distance, y),
-        LEFT => return (x - distance, y),
+        UP => return (x, y - distance as u32),
+        DOWN => return (x, y + distance as u32),
+        RIGHT => return (x + distance as u32, y),
+        LEFT => return (x - distance as u32, y),
         _ => todo!(),
     }
 }
@@ -254,7 +258,7 @@ pub fn direction_to_string(direction: (i32, i32)) -> String {
     }
 }
 
-pub fn check_for_loop(input: &Vec<Vec<char>>, start: (i32, i32), direction: (i32, i32)) -> bool {
+pub fn check_for_loop(input: &Vec<Vec<char>>, start: (u32, u32), direction: (i32, i32)) -> bool {
     let mut obstacles = [].to_vec();
 
     let mut start = start.clone();
@@ -279,10 +283,10 @@ pub fn check_for_loop(input: &Vec<Vec<char>>, start: (i32, i32), direction: (i32
 }
 
 pub fn find_next_obstacle(
-    start: (i32, i32),
+    start: (u32, u32),
     direction: (i32, i32),
     input: &Vec<Vec<char>>,
-) -> (Option<(i32, i32)>, u32) {
+) -> (Option<(u32, u32)>, u32) {
     let path = extract_vec_from_2d_vec(input, start, direction, 1 as i32, -1 as i32);
     match position_of_char(&path, &'#').first() {
         Some(distance) => {
@@ -293,7 +297,7 @@ pub fn find_next_obstacle(
         }
         None => {
             //println!("found exit in {direction:?} from {start:?}");
-            return (None, path.len() as u32);
+            return (None, path.len() as u32 - 1);
         }
     }
 }
