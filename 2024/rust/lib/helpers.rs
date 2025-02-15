@@ -163,7 +163,7 @@ pub fn extract_vec_from_2d_vec(
     min_length: i32,
     max_length: i32,
 ) -> Vec<char> {
-    let (mut x, mut y) = start;
+    let (x, y) = start;
     let (mut x, mut y) = (x as i64, y as i64);
 
     let mut ret: Vec<char> = Vec::new();
