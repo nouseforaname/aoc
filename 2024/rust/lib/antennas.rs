@@ -45,8 +45,9 @@ fn calc_interferences(path: &String, amplify: bool) -> u32 {
 
     count
 }
+#[test]
 fn test_find_antenna_positions() {
-    let (map, width, height) = find_antenna_positions("../data/input_8a.txt".to_string());
+    let (map, _, _) = find_antenna_positions("../data/input_8a.txt".to_string());
     assert_eq!(map.get(&'0').unwrap(), &[(8, 1), (5, 2), (7, 3), (4, 4)]);
     assert_eq!(map.get(&'A').unwrap(), &[(6, 5), (8, 8), (9, 9)]);
 }
